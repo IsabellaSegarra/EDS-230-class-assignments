@@ -42,6 +42,24 @@ where:
 
 Write your function in R; make sure that you add documentation; include default values for *r* and *PR* in the function definition; save the function in a single file to upload to Canvas.
 
+```{r}
+# Inputs in function: A, r, H, PR
+
+# The following function will produce an estimate of energy produced from a photovoltaic system with inputs of solar panel area and annual average solar radition. 
+
+# Name function 
+photovoltaic_energy <- 
+  # Define the function arguments to represent the defined equation above 
+  function(A, H){ 
+  # Define equation for energy return in a photovoltaic system 
+  E <- A * 0.2 * H * 0.75 
+    return(E)
+}
+
+# Step 2: Use function with 
+photovoltaic_energy(6, 0.8)
+```
+
 ### To summarize, submit the following by 8am Jan 8:
 
 1.  Fill out 'get to know you' survey on Canvas\
