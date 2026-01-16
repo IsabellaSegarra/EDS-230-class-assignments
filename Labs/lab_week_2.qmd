@@ -1,0 +1,48 @@
+---
+title: "lab_week_2"
+format: html
+---
+
+## Sensitivity Analysis with ethresh 
+
+```{r}
+#....Set up....
+library(tidyverse)
+library(here)
+# Source code 
+source(here("R/solarpv.R"))
+load(here("Data/sierraczosolar.rda"))
+
+#....Define parameters....
+mean <- 10000 # average threshold 
+uncertainty <- 0.15
+min <- mean - (mean*uncertainty)
+max <- mean + (mean*uncertainty)
+
+#....Generate uniform distribution....
+ethresh <- runif(n = 100, min = min, max = max)
+
+# use map from purrr to run model for all values of ethresh
+# notice how map adds the one parameter that is missing from the input list
+
+site3 <- ethresh %>% map(~ solarpv(area = 0.1, 
+  solar = sierraczosolar, clr = "green", 
+  eunit = "kWhr", g = FALSE, etype = "direct", ethresh =.x))
+
+# View data 
+head(site3)
+
+#....Create dataframe....
+tmp <- map_dfr(site3, `[`, c("annual"))
+
+# convert from tibble to a data frame
+site3df <- data.frame(year = tmp$annual$year, elect = tmp$annual$elect)
+head(site3df)
+
+#...Plot the uncertainty....
+ggplot(site3df, aes(year, elect, group = year)) +
+  geom_boxplot() +
+  labs(y = "Electricity generated in kWhr")
+
+```
+
