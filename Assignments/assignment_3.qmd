@@ -1,0 +1,177 @@
+---
+title: "assignment_3"
+format: html
+---
+
+## Almond Yield Model 
+This assignment utilizes the statistical models in Lobell et al., 2006 study. This study investigated the impact of climate change on six major perennial crops in California using multiple climate and crop models to account for uncertainty. In this assignment, I will utilize the equations in Table 2. along with climate data (`clim.txt`)
+
+
+## Model assumptions
+
+## Conceptual model 
+* Inputs: daily times series of minimum, maximum daily temperatures and precipitation
+
+* Outputs: maximum, minimum and mean yield anomoly for a input time series
+
+### Set-Up
+```{r}
+# ....Load relevant libraries....
+library(here)
+library(tidyverse)
+library(readr)
+library(dplyr)
+
+# ....Load data....
+
+clim_data <- read.table("/Users/isabellasegarra/Documents/MEDS/EDS-230/EDS-230-class-assignments/Data/clim.txt", header = TRUE) %>% 
+  rename(water_year = wy)
+
+```
+
+## Function for Almond yields 
+According to the equation from Table 2 in the study, the authors determined almond yield 
+```{r}
+#' Almond Yield
+#' Computes electricity from a photovoltaic system given incoming solar radiation
+#' @param 
+#' @param 
+#' @param 
+#' @param 
+
+#' @author Isabella Segarra 
+#' @return Yield anomly (ton acre^-1)
+#' 
+#' 
+#' 
+
+
+almond_yield <- function(temp_var, precip_var) {
+
+  # calculate daily yield anomaly
+  y <- (-0.015 * temp_var) - (0.0046 * temp_var^2) - (0.07 * precip_var) + (0.0043 * precip_var^2) + 0.28
+
+  # summarize for time series 
+  list(
+    mean_yield_anomaly = mean(y, na.rm = TRUE),
+    max_yield_anomaly  = max(y, na.rm = TRUE),
+    min_yield_anomaly  = min(y, na.rm = TRUE)
+  )
+}
+
+# another way (WRONG WAY!!)
+
+almond_yield2 <- function(clim_data){
+# process clim data 
+  processed_clim <- clim_data %>%
+  group_by(year) %>%
+  summarise(
+    temp_var = mean(tmin_c[month == 2], na.rm = TRUE),
+    precip_var = sum(precip[month == 1], na.rm = TRUE)
+  ) %>%
+  ungroup() 
+  
+  #....Apply equation....
+   y <- (-0.015 * temp_var) - (0.0046 * temp_var^2) - (0.07 * precip_var) + (0.0043 * precip_var^2) + 0.28
+
+  # ....summarize for time series...
+  list(
+    mean_yield_anomaly = mean(y, na.rm = TRUE),
+    max_yield_anomaly  = max(y, na.rm = TRUE),
+    min_yield_anomaly  = min(y, na.rm = TRUE)
+  )
+  # Add yield anomy for year column 
+  processed_clim <- processed_clim %>%
+  mutate(
+    yield_anomaly =
+      (-0.015 * temp_var) -
+      (0.0046 * temp_var^2) -
+      (0.07 * precip_var) +
+      (0.0043 * precip_var^2) +
+      0.28
+  )
+
+}
+  
+# add a graph to it 
+
+
+almond_yield2 <- function(clim_data){
+
+  # 1. Process clim data
+  processed_clim <- clim_data %>%
+    group_by(year) %>%
+    summarise(
+      temp_var   = mean(tmin_c[month == 2], na.rm = TRUE),
+      precip_var = sum(precip[month == 1], na.rm = TRUE)
+    ) %>%
+    ungroup()
+
+  # 2. Compute yield anomaly per year
+  processed_clim <- processed_clim %>%
+    mutate(
+      yield_anomaly =
+        (-0.015 * temp_var) -
+        (0.0046 * temp_var^2) -
+        (0.07 * precip_var) +
+        (0.0043 * precip_var^2) +
+        0.28
+    )
+
+  # 3. Summary for time series
+  summary_stats <- processed_clim %>%
+    summarise(
+      mean_yield_anomaly = mean(yield_anomaly, na.rm = TRUE),
+      max_yield_anomaly  = max(yield_anomaly, na.rm = TRUE),
+      min_yield_anomaly  = min(yield_anomaly, na.rm = TRUE)
+    )
+
+  # 4. Return both
+  list(
+    yearly = processed_clim,
+    summary = summary_stats
+  )
+}
+
+
+
+
+```
+
+## Apply function to climate data
+
+```{r}
+
+#....process clim_data before....
+
+processed_clim <- clim_data %>%
+  group_by(year) %>%
+  summarise(
+    temp_var = mean(tmin_c[month == 2], na.rm = TRUE),
+    precip_var = sum(precip[month == 1], na.rm = TRUE)
+  ) %>%
+  ungroup()
+
+
+almond_yield_results <- almond_yield(
+  temp_var   = clim_data$tmin_c, # min temperature
+  precip_var = clim_data$precip # precipitation
+)
+
+almond_yield(temp_var = processed_clim$temp_var, precip_var = processed_clim$precip_var)
+
+almond_yield_results
+
+almond_yield2(clim_data) # WORKED!!
+
+
+
+```
+
+
+
+## Determining more crop yields
+Now, I will produce a function that can be applied to the crops mentioned in 
+
+
+
