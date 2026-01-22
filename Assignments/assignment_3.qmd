@@ -1,5 +1,6 @@
 ---
-title: "assignment_3"
+title: "EDS-230 Assignment 3: Almond Yield"
+author: Isabella Segarra 
 format:
   html:
     code-fold: show
@@ -16,7 +17,7 @@ This assignment utilizes the statistical models in Lobell et al., 2006 study. Th
 
 ## Model assumptions
 
--   February average temperatures and January total precipitation are sufficient to predict almond yield.\
+-   February average temperatures and January total precipitation are sufficient to predict almond yield. 
 
 -   This model corresponds to seasons that correspond broadly to the Northern-hemisphere and more specifically, California climates.
 
@@ -30,7 +31,7 @@ This assignment utilizes the statistical models in Lobell et al., 2006 study. Th
 
 -   Outputs: maximum, minimum and mean yield anomoly for a input time series
 
-![conceptual model](images/crop_yield_conceptual_model.png)
+![Conceptual model](crop_yield_conceptual_model.png){width=100%}
 
 ### Set-Up
 
@@ -143,7 +144,7 @@ crop_yield <- function(crop, temp_var, precip_var, temp_var2 = 0, precip_var2 = 
  if(crop == "Almonds") {
    y <- (-0.015 * temp_var) - (0.0046 * temp_var^2) - (0.07 * precip_var) + (0.0043 * precip_var^2) + 0.28
  } else if (crop == "Wine Grapes") {
-   y <- (2.65 *temp_var) - (0.17 * temp_var ^2) + (4.78 * precip_var) - (4.93 * precip_var ^2) - (2.24 * precip_var2) + (1.54*precip_2^2) - 10.50
+   y <- (2.65 *temp_var) - (0.17 * temp_var ^2) + (4.78 * precip_var) - (4.93 * precip_var ^2) - (2.24 * precip_var2) + (1.54*precip_var2^2) - 10.50
 } else if (crop == "Table Grapes") {
    (6.93 *temp_var) - (0.197 * temp_var ^2) + (2.61 * temp_var2) - (.157 * temp_var2^2) + (.035 * precip_var) + (.024 * precip_var ^2) + (1.71 * precip_var2) - (.673*precip_var2^2) - 73.89
 } else if (crop == "Oranges") {
@@ -162,5 +163,37 @@ crop_yield <- function(crop, temp_var, precip_var, temp_var2 = 0, precip_var2 = 
     min_yield_anomaly  = min(y, na.rm = TRUE)
   )
 }
+```
+
+## Apply `crop_yield` function
+```{r}
+
+#....Process data for wine grapes...
+
+processed_clim_wine_grapes <- clim_data %>%
+  # Group by year
+  group_by(year) %>%
+  summarise(
+    # Get the average temperature for April
+    temp_var = mean(tmin_c[month == 4], na.rm = TRUE),
+    # Get the total monthly precipitation for July
+    precip_var = sum(precip[month == 6], na.rm = TRUE),
+    # Current year precipitation for september
+    precip_var2_no_lag = sum(precip[month == 9], na.rm = TRUE)) %>%
+  ungroup() %>% 
+  arrange(year) %>%
+  mutate(
+    # Lag of September precipitation
+    precip_var2 = lag(precip_var2_no_lag, n = 1)
+  )
+#....Apply function....
+
+crop_yield(temp_var = processed_clim_wine_grapes$temp_var, 
+           precip_var = processed_clim_wine_grapes$precip_var, 
+           precip_var2 = processed_clim_wine_grapes$precip_var2, 
+           crop = "Wine Grapes")
+
+
+
 ```
 
