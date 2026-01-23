@@ -1,0 +1,349 @@
+---
+title: "Assignment 3"
+author: "Megan Hessel, Mallory Wang"
+format: pdf
+editor: visual
+---
+
+## Goal
+
+Your goal is to implement a simple model of almond yield anomaly response to climate
+
+-   Inputs: daily times series of minimum, maximum daily temperatures and precipitation
+
+-   Outputs: maximum, minimum and mean yield anomoly for a input time series
+
+What you will do:
+
+1.  Draw diagram to represent your model - how it will translate inputs to outputs, with parameters that shape the relationship between inputs an outputs - on your diagram list what your inputs, parameters and outputs are with units
+
+![](images/Assignment3_model.png)
+
+2.  Implement your diagram as an R function
+
+```{r setup, message=FALSE, warning=FALSE}
+library(dplyr)
+library(ggplot2)
+```
+
+## R function
+
+```{r, error=FALSE, warning=FALSE, message=FALSE}
+almond_yield <- function(df){
+#' Computes crop yield for input time series for almond yield
+#' @param df dataframe with columns: day, month, year, tmax_c, tmin_c, precip
+#' @return dataframe with columns: year, avg_tmin_c, sum_precip, Y
+
+  # get T_n,2
+  Tn2 <- df %>%
+    filter(month == 2) %>% # will filter out years that don't have data in Feb
+    group_by(year) %>%
+    summarise(avg_tmin_c = mean(tmin_c, na.rm = TRUE))
+  
+  # get P_1
+  P1 <- df %>%
+    filter(month == 1) %>% # will filter out years that don't have data in Jan
+    group_by(year) %>%
+    summarise(sum_precip = sum(precip, na.rm = TRUE))
+  
+  # combine back to one df
+  result <- merge(Tn2, P1, by = "year", all = TRUE)
+  
+  # get Y
+  result <- result %>%
+    mutate(
+      Y = if_else(
+        is.na(avg_tmin_c) | is.na(sum_precip),
+        NA_real_,
+        (-0.015 * avg_tmin_c) + (-0.0046 * avg_tmin_c^2) + 
+          (-0.07 * sum_precip) + (0.0043 * sum_precip^2) + 0.28
+      )
+    )
+  result
+}
+
+calc_max_min_mean_yield <- function(df){
+#' Computes maximum, minimum, and mean yield anomaly for input time series for almond yield
+#' @param df dataframe with columns: year, avg_tmin_c, sum_precip, Y
+#' @return calculates minimum Y, maximum Y, and mean Y
+
+  summary_stats <- df %>%
+    summarise(
+      min_Y = min(Y, na.rm = TRUE),
+      max_Y = max(Y, na.rm = TRUE),
+      mean_Y = mean(Y, na.rm = TRUE)
+    )
+  summary_stats
+}
+```
+
+3.  Run your model for the **clim.txt** data that is posted on Canvas,
+
+And check our work:
+
+-   the maximum almond yield anomaly should be approximately 1920 ton/acre
+-   the lowest almond yield anomaly should be approximately -0.027 ton/acre
+-   the mean almond yield anomaly should be approximately 182 ton/acre
+
+```{r importData}
+clim <- read.table("clim.txt", header = TRUE)
+```
+
+```{r run-analysis}
+calc_max_min_mean_yield(almond_yield(clim))
+```
+
+**Check results:**
+```{r check, error=FALSE, warning=FALSE, message=FALSE}
+result <- almond_yield(clim)
+
+ggplot(result, aes(x = year, y = Y)) +
+  geom_col(fill = "steelblue") +
+  geom_text(aes(label = round(Y, 2), vjust = ifelse(Y >= 0, -0.5, 1.5)),size = 3) +
+  labs(x = "Year", y = "Total Yield", title = "Total Yield by Year") +
+  theme_minimal()
+```
+
+**Try the rest of the crops**
+```{r, error=FALSE, warning=FALSE, message=FALSE}
+wine_grapes_yield <- function(df, year = "year", month = "month", 
+                              min_temp  = "tmin_c", precip  = "precip"){
+#' Computes crop yield for input time series for wine grapes yield
+#' @param df dataframe with columns: day, month, year, tmax_c, tmin_c, precip
+#' @return dataframe with columns: year, avg_tmin_c, sum_precip, Y
+
+  # get T_n,4
+  Tn4 <- df %>%
+    filter(month == 4) %>%
+    group_by(year) %>%
+    summarise(avg_tmin_c4 = mean(tmin_c, na.rm = TRUE))
+  
+  # get P_6
+  P6 <- df %>%
+    filter(month == 6) %>%
+    group_by(year) %>%
+    summarise(sum_precip6 = sum(precip, na.rm = TRUE))
+  
+  # get P_neg9
+  Pneg9 <- df %>%
+    filter(month == 9) %>%
+    mutate(year = year + 1) %>%  
+    group_by(year) %>%
+    summarise(sum_precip_n9 = sum(precip, na.rm = TRUE))
+  
+  # combine back to one df
+  result <- merge(Tn4, P6, by = "year", all = TRUE)
+  result <- merge(result, Pneg9, by = "year", all = TRUE)
+  
+  # get Y
+  result <- result %>%
+    mutate(
+      Y = if_else(
+        is.na(avg_tmin_c4) | is.na(sum_precip6) | is.na(sum_precip_n9),
+        NA_real_,
+        (2.65 * avg_tmin_c4) + (-0.17 * avg_tmin_c4^2) + 
+          (4.78 * sum_precip6) + (-4.93 * sum_precip6^2) +
+          (-2.24 * sum_precip_n9) + (1.54 * sum_precip_n9^2) -10.5
+      )
+    )
+  result
+}
+
+table_grapes_yield <- function(df, year = "year", month = "month", 
+                               min_temp  = "tmin_c", precip  = "precip"){
+#' Computes crop yield for input time series for table grapes yield
+#' @param df dataframe with columns: day, month, year, tmax_c, tmin_c, precip
+#' @return dataframe with columns: year, avg_tmin_c, sum_precip, Y
+
+  # get T_n,4
+  Tn4 <- df %>%
+    filter(month == 4) %>%
+    group_by(year) %>%
+    summarise(avg_tmin_c4 = mean(tmin_c, na.rm = TRUE))
+  
+  # get T_n,7
+  Tn7 <- df %>%
+    filter(month == 7) %>%
+    group_by(year) %>%
+    summarise(avg_tmin_c7 = mean(tmin_c, na.rm = TRUE))
+  
+  # get P_1
+  P1 <- df %>%
+    filter(month == 1) %>%
+    group_by(year) %>%
+    summarise(sum_precip1 = sum(precip, na.rm = TRUE))
+  
+  # get P_neg10
+  Pneg10 <- df %>%
+    filter(month == 10) %>%
+    mutate(year = year + 1) %>%  
+    group_by(year) %>%
+    summarise(sum_precip_n10 = sum(precip, na.rm = TRUE))
+  
+  # combine back to one df
+  result <- merge(Tn4, Tn7, by = "year", all = TRUE)
+  result <- merge(result, P1, by = "year", all = TRUE)
+  result <- merge(result, Pneg10, by = "year", all = TRUE)
+  
+  # get Y
+  result <- result %>%
+    mutate(
+      Y = if_else(
+        is.na(avg_tmin_c4) | is.na(avg_tmin_c7) | is.na(sum_precip1)| 
+          is.na(sum_precip_n10),
+        NA_real_,
+        (6.94 * avg_tmin_c7) + (-0.19 * avg_tmin_c7^2) + 
+          (2.61 * avg_tmin_c4) + (-0.15 * avg_tmin_c4^2) +
+          (0.035 * sum_precip1) + (0.0245 * sum_precip1^2) +
+          (1.71 * sum_precip_n10) + (0.673 * sum_precip_n10^2) - 73.89
+      )
+    )
+  result
+}
+
+orange_yield <- function(df, year = "year", month = "month", 
+                         min_temp  = "tmin_c", precip  = "precip"){
+#' Computes crop yield for input time series for orange yield
+#' @param df dataframe with columns: day, month, year, tmax_c, tmin_c, precip
+#' @return dataframe with columns: year, avg_tmin_c, sum_precip, Y
+
+  # get T_n,-12
+  Tn_n12 <- df %>%
+    filter(month == 12) %>%
+    mutate(year = year + 1) %>%  
+    group_by(year) %>%
+    summarise(avg_tmin_c_n12 = mean(tmin_c, na.rm = TRUE))
+  
+  # get P_5
+  P5 <- df %>%
+    filter(month == 5) %>%
+    group_by(year) %>%
+    summarise(sum_precip5= sum(precip, na.rm = TRUE))
+  
+  # combine back to one df
+  result <- merge(Tn_n12, P5, by = "year", all = TRUE)
+  
+  # get Y
+  result <- result %>%
+    mutate(
+      Y = if_else(
+        is.na(avg_tmin_c_n12) | is.na(sum_precip5),
+        NA_real_,
+        (1.08 * avg_tmin_c_n12) + (-0.2 * avg_tmin_c_n12^2) + 
+          (4.99 * sum_precip5) + (-1.97 * sum_precip5^2) -2.47
+      )
+    )
+  result
+}
+
+walnuts_yield <- function(df, year = "year", month = "month", 
+                          max_temp  = "tmax_c", precip  = "precip"){
+#' Computes crop yield for input time series for walnut yield
+#' @param df dataframe with columns: day, month, year, tmax_c, tmin_c, precip
+#' @return dataframe with columns: year, avg_tmin_c, sum_precip, Y
+
+  # get T_x,-11
+  Tx_n11 <- df %>%
+    filter(month == 11) %>%
+    mutate(year = year + 1) %>%  
+    group_by(year) %>%
+    summarise(avg_tmax_c_n11 = mean(tmax_c, na.rm = TRUE))
+  
+  # get P_2
+  P2 <- df %>%
+    filter(month == 2) %>%
+    group_by(year) %>%
+    summarise(sum_precip2= sum(precip, na.rm = TRUE))
+  
+  # combine back to one df
+  result <- merge(Tx_n11, P2, by = "year", all = TRUE)
+  
+  # get Y
+  result <- result %>%
+    mutate(
+      Y = if_else(
+        is.na(avg_tmax_c_n11) | is.na(sum_precip2),
+        NA_real_,
+        (0.68 * avg_tmax_c_n11) + (-0.02 * avg_tmax_c_n11^2) + 
+          (0.038 * sum_precip2) + (-0.005 * sum_precip2^2) -5.83
+      )
+    )
+  result
+}
+avocado_yield <- function(df, year = "year", month = "month", 
+                          min_temp  = "tmin_c", max_temp  = "tmax_c", 
+                          precip  = "precip"){
+#' Computes crop yield for input time series for avocado yield
+#' @param df dataframe with columns: day, month, year, tmax_c, tmin_c, precip
+#' @return dataframe with columns: year, avg_tmin_c, sum_precip, Y
+
+  # get T_x,-8
+  Tx_n8 <- df %>%
+    filter(month == 8) %>%
+    mutate(year = year + 1) %>%  
+    group_by(year) %>%
+    summarise(avg_tmax_c_n8 = mean(tmax_c, na.rm = TRUE))
+  
+  # get T_n,5
+  Tn5 <- df %>%
+    filter(month == 5) %>%
+    group_by(year) %>%
+    summarise(avg_tmin_c5 = mean(tmin_c, na.rm = TRUE))
+  
+  # get P_neg10
+  Pneg10 <- df %>%
+    filter(month == 10) %>%
+    mutate(year = year + 1) %>%  
+    group_by(year) %>%
+    summarise(sum_precip_n10 = sum(precip, na.rm = TRUE))
+  
+  # combine back to one df
+  result <- merge(Tx_n8, Tn5, by = "year", all = TRUE)
+  result <- merge(result, Pneg10, by = "year", all = TRUE)
+  
+  # get Y
+  result <- result %>%
+    mutate(
+      Y = if_else(
+        is.na(avg_tmax_c_n8) | is.na(avg_tmin_c5) | is.na(sum_precip_n10),
+        NA_real_,
+        (17.71 * avg_tmax_c_n8) + (-0.29 * avg_tmax_c_n8^2) + 
+          (3.25 * avg_tmin_c5) + (-0.14 * avg_tmin_c5^2) +
+          (1.0 * sum_precip_n10) + (-0.31 * sum_precip_n10^2) -288.09
+      )
+    )
+  result
+}
+
+get_yield_by_crop <- function(df = clim, crop = 'almond'){
+#' Computes crop yield for input of data and crop choice
+#' @param df dataframe with columns: day, month, year, tmax_c, tmin_c, precip
+#' @param string string of which crop to calculate. Note, two words must be underscore separated, not white space
+#' @return dataframe with columns: year, avg_tmin_c, sum_precip, Y
+
+  crop <- tolower(crop)
+  result <- switch(crop,
+                   "almond" = almond_yield(df),
+                   "avocado" = avocado_yield(df),
+                   "wine_grape" = wine_grapes_yield(df),
+                   "table_grape" = table_grapes_yield(df),
+                   "orange" = orange_yield(df),
+                   "walnut" = walnuts_yield(df)
+  )
+  
+  return(result)
+}
+
+# Check
+calc_max_min_mean_yield(get_yield_by_crop(clim, "almond"))
+calc_max_min_mean_yield(avocado_yield(clim))
+calc_max_min_mean_yield(get_yield_by_crop(clim, "avocado"))
+calc_max_min_mean_yield(walnuts_yield(clim))
+calc_max_min_mean_yield(get_yield_by_crop(clim, "walnut"))
+calc_max_min_mean_yield(orange_yield(clim))
+calc_max_min_mean_yield(get_yield_by_crop(clim, "orange"))
+calc_max_min_mean_yield(wine_grapes_yield(clim))
+calc_max_min_mean_yield(get_yield_by_crop(clim, "wine_grape"))
+calc_max_min_mean_yield(table_grapes_yield(clim))
+calc_max_min_mean_yield(get_yield_by_crop(clim, "table_grape"))
+```
