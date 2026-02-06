@@ -94,6 +94,7 @@ calc_max_min_mean_yield(almond_yield(clim))
 ```
 
 **Check results:**
+
 ```{r check, error=FALSE, warning=FALSE, message=FALSE}
 result <- almond_yield(clim)
 
@@ -105,6 +106,7 @@ ggplot(result, aes(x = year, y = Y)) +
 ```
 
 **Try the rest of the crops**
+
 ```{r, error=FALSE, warning=FALSE, message=FALSE}
 wine_grapes_yield <- function(df, year = "year", month = "month", 
                               min_temp  = "tmin_c", precip  = "precip"){

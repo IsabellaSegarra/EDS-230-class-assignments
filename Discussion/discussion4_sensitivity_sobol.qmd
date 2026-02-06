@@ -13,6 +13,7 @@ library(sensitivity)
 library(purrr)
 
 source(here("R/compute_almond_yield.R"))
+source(here("R/compute_almond_yield2.R"))
 clim <- read.delim(here("Data/clim.txt"), sep = " ")
 ```
 
@@ -52,7 +53,7 @@ First we need to generate parameter sets for the Sobol analysis
 
 # generate two examples of random number from parameter distributions
 
-np <- 1000
+np <- 100
 Tmincoeff1 <- rnorm(mean = -0.015, sd = 0.005, n = np)
 Tmincoeff2 <- rnorm(mean = -0.0046, sd = 0.0005, n = np)
 Pcoeff1 <- rnorm(mean = -0.07, sd = 0.02, n = np)
@@ -89,8 +90,9 @@ now run model for Sobol generated parameter sets and compute indices
 
 parms <- as.data.frame(sens_Catm_Sobol$X)
 colnames(parms) <- colnames(X1)
-res <- pmap_dbl(parms, compute_almond_yield, clim=clim)
+res <- pmap_dbl(parms, compute_almond_yield2, clim=clim) # almond_yield 2 gives back 1 mean 
 
+#
 
 sens_Catm_Sobol <- sensitivity::tell(sens_Catm_Sobol, res, res.names = "yield")
 
@@ -105,7 +107,6 @@ row.names(sens_Catm_Sobol$T) <- colnames(parms)
 sens_Catm_Sobol$T
 
 # Both the main effect and total effect can tell us something about how the parameter influences results
-
 
 print(sens_Catm_Sobol)
 ```
@@ -156,7 +157,7 @@ sens_Catm_Sobol2 <- sobolSalt(model = NULL, X1, X2, nboot = 100, scheme = "B")
 
 parms <- as.data.frame(sens_Catm_Sobol2$X)
 colnames(parms) <- colnames(X1)
-res <- pmap_dbl(parms, compute_almond_yield, clim=clim)
+res <- pmap_dbl(parms, compute_almond_yield2, clim=clim)
 
 
 sens_Catm_Sobol2 <- sensitivity::tell(sens_Catm_Sobol2, res, res.names = "yield")

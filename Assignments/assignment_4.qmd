@@ -1,5 +1,218 @@
 ---
-title: "assignment_4"
-format: html
+title: "EDS-230 Assignment 4: Profit Model For Almond Yield "
+author: Isabella Segarra 
+format:
+  html:
+    code-fold: show
+execute:
+  echo: true
+  warning: false
+  message: false
+  error: false
 ---
+
+# Almond Profit Model 
+
+Develop a profit model for your almond yield (you can make this up - think about what the parameters would be)
+
+you might assume a baseline profit and then adjust according to the anomaly
+
+there are many ways to combine the almond yield and profit functions; you can have the profit function "call"/use the almond yield function; or create a wrapper function that calls them in sequence (first the almond yield and then the profit function)
+
+Do a simple informal sensitivity analysis of almond yield profit using at least 2 parameters
+
+Create a single graph of the results - you can decide what is the most meaningful graph
+
+
+revenue - cost = profit 
+* revenue: almond yield * price
+* cost: fixed + variable; cost of water, machine labor 
+
+## Model Assumptions
+- assume a baseline yield for orchard 
+
+## Model Parameters
+- inputs:
+  - cost: total operating cost for one year ()
+  - price: 
+- outputs: 
+
+```{r}
+# ....Load relevant libraries....
+library(here)
+library(tidyverse)
+library(readr)
+library(dplyr)
+
+# ....Load data....
+
+# 1. Climate data 
+clim_df <- read.table(here("Data", "clim.txt"), header = TRUE) %>%
+  # rename column
+  rename(water_year = wy)
+
+# 2. Create price data (from pg 4)
+price_lb_per_dollar_df <- data.frame(
+  year = c(1995:2023),
+  price_lb = c(
+    2.48, 2.08, 1.56, 1.41, 0.86, 0.97, 0.91, 1.11, 1.57, 2.21,
+    2.81, 2.06, 1.75, 1.45, 1.65, 1.79, 1.99, 2.58, 3.21, 4.00,
+    3.13, 2.39, 2.53, 2.50, 2.45, 1.71, 1.86, 1.40, 1.64
+  )
+)
+
+# Get average price
+avg_price <- mean(price_lb_per_dollar_df$price_lb)
+
+# Fill in missing years with average price
+missing_years <- data.frame(year = 1988:1994, price_lb = avg_price)
+
+# Combine
+almond_prices <- rbind(missing_years, price_lb_per_dollar_df)
+
+# Convert to price per ton
+almond_prices <- almond_prices %>% 
+  mutate(price_ton = price_lb * 2000)  # 2000 lbs per ton
+
+```
+
+```{r}
+almond_yield <- function(df){
+#' Computes crop yield for input time series for almond yield
+#' @param df dataframe with columns: day, month, year, tmax_c, tmin_c, precip
+#' @return dataframe with columns: year, avg_tmin_c, sum_precip, Y
+
+  # get T_n,2
+  Tn2 <- df %>%
+    filter(month == 2) %>% # will filter out years that don't have data in Feb
+    group_by(year) %>%
+    summarise(avg_tmin_c = mean(tmin_c, na.rm = TRUE))
+  
+  # get P_1
+  P1 <- df %>%
+    filter(month == 1) %>% # will filter out years that don't have data in Jan
+    group_by(year) %>%
+    summarise(sum_precip = sum(precip, na.rm = TRUE))
+  
+  # combine back to one df
+  result <- merge(Tn2, P1, by = "year", all = TRUE)
+  
+  # get Y
+  result <- result %>%
+    mutate(
+      Y = if_else(
+        is.na(avg_tmin_c) | is.na(sum_precip),
+        NA_real_,
+        (-0.015 * avg_tmin_c) + (-0.0046 * avg_tmin_c^2) + 
+          (-0.07 * sum_precip) + (0.0043 * sum_precip^2) + 0.28
+      )
+    )
+  result
+}
+
+
+```
+
+
+```{r}
+# pseudo code function
+
+# Profit = Revenue * Cost (3807)
+# Revenue = yield * price 
+
+source(here("R/almond_yield.R"))
+
+function(clim_data, price_data) {
+  # extract price vector from price_data
+ price_year <-  price_data %>% 
+   pull(price)
+  # Call almond yield function
+  source(here("R/almond_yield.R"))
+  revenue <- (Y + 0.9) * price_year
+  profit <- (revenue *  3807)
+}
+
+```
+
+```{r}
+almond_profit <- function(clim_data, price_data, discount_rate = 0.09, graph = TRUE) {
+  #' Calculate almond profit from climate data and prices
+  #' @param clim_data dataframe with columns: day, month, year, tmax_c, tmin_c, precip
+  #' @param price_data dataframe with columns: year, price
+  #' @param discount_rate 
+  #' @return dataframe with columns: year, yield_anomaly, profit
+  
+  #............Apply Almond yield function............
+  # Get yields from almond yield function 
+  yields <- almond_yield(clim_df)
+  
+  # ............Merge with prices............
+  result <- merge(yields, price_data, by = "year")
+  
+  # ............Calculate profit............
+  # Calculate profit
+  result <- result %>%
+    mutate(
+      # Current value of cost (discounted from 2024)
+      cost = 3807 / (1 + discount_rate)^(2024 - year),
+      # Actual yield
+      actual_yield = Y + 0.9,
+      # Revenue
+      revenue = actual_yield * price_ton,
+      # Profit
+      profit = revenue - cost
+    )
+  
+  return(result)
+  
+   plot <- ggplot(result, aes(x = year, y = profit)) +
+      geom_line() +
+      geom_point() +
+      theme_minimal()
+   
+   print(plot)
+}
+
+
+```
+
+```{r}
+almond_profit(clim_df, almond_prices)
+```
+## Sensitivity analysis
+```{r}
+# Generate parameter samples: tmin, precip, discount rate, and price
+nsamples <- 300 # number of samples
+mean_tmin <- rnorm(mean = 12, sd = 2, n = nsamples)
+mean_precip <- rnorm(mean = 1, sd = 0.5, n = nsamples)
+dis_rate <- rnorm(mean = 0.08, sd = 0.015, n = nsamples)
+price_base <- 1.50
+price_sd <- 0.80
+p <- runif(max = price_base + price_sd * price_base,
+min = price_base - price_sd * price_base,
+n = nsamples)
+
+# Put samples together
+parms <- cbind.data.frame(mean_tmin, mean_precip, dis_rate, p)
+
+# RUN THE SIMULATION OVER THE 300 SAMPLES
+# Use pmap with wrapper (because your function needs a dataframe, not scalars like the so
+# `results` is results of 300 different simulations
+results <- parms %>%
+pmap(function(mean_tmin, mean_precip, dis_rate, p) {
+almond_df <- data.frame(
+tmin_c = rnorm(mean = mean_tmin, sd = 3, n = 40),
+precip = rnorm(mean = mean_precip, sd = 2, n = 40),
+month = c(rep(1, 20), rep(2, 20)),
+year = rep(1981:2000, times = 2)
+)
+almond_profit_function(almond_df, prices = p, discount_rate = dis_rate)
+})
+# Extract mean profit column from each simulation result
+mean_profit <- map_dbl(results, ~mean(.x$profit, na.rm = TRUE))
+#mean_profit <- map_df(results, `[`, c("mean"))
+# Add parameter values
+mean_profit <- cbind.data.frame(mean_profit, parms)
+
+```
 
