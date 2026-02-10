@@ -51,7 +51,9 @@ First we need to generate parameter sets for the Sobol analysis
 ```{r sobolpar}
 
 # generate two examples of random number from parameter distributions
-
+np <- 100
+Tmincoeff1 <- rnorm(mean = -0.015, sd = 0.005, n = np)
+Tmincoeff2
 
 
 # repeat sampling

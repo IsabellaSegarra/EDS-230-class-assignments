@@ -1,0 +1,188 @@
+---
+title: "EDS-230 Assignment 5: Sobol"
+author: Isabella Segarra 
+format:
+  html:
+    code-fold: show
+execute:
+  echo: true
+  warning: false
+  message: false
+  error: false
+---
+```{r}
+# Set-up
+
+library(sensitivity)
+library(tidyverse)
+# library(lhs)
+library(purrr)
+library(here)
+```
+
+## Part 1
+write a paragraph describing how results of the sensitivity analysis reported on in the paper might contribute to understanding (or prediction) within an environmental problem solving or management context.
+
+**YOUR PARAGRAPH HERE** 
+
+## Part 2
+Model of atmospheric conductance
+
+### Step 1: The Function
+This function was created by Naomi Tague. It is a function that calculates atmospheric conductance or how easily water diffuses into the air. This value largely depends on windspeed. 
+
+```{r}
+source(here("R/Catm.R"))
+```
+
+## Step 2: Sobol sensitivty analysis
+The following parameters are considered in our sensitivity analysis:
+- `height`
+- `k_d`
+- `k_o`
+- `v`
+
+Windspeeds are normally distributed with a mean of 300 cm/s with a standard deviation of 50 cm/s
+
+For vegetation height assume that height is somewhere between 3.5 and 5.5 m (but any value in that
+range is equally likely) 
+
+For the `k_d` and `k_o` and parameters you can assume that they are normally distributed with standard deviation
+of 1% of their default values
+
+Assume the following:
+- windspeed substantially higher
+- vegetation shorter 
+
+In this section I did the following:
+1. 
+```{r}
+# Set seed for reproducibility
+set.seed(230)
+
+# Step 1: Generate two examples of random number from parameter distributions
+
+# Define sample size 
+np <- 1000
+
+#.... X1 Sampling.... 
+# Define variables 
+k_o <- rnorm(mean = 0.1, sd = 0.1 * 0.01, n = np)
+k_d <- rnorm(mean = 0.7, sd = 0.7 * 0.01, n = np)
+v <- rnorm(mean = 300, sd = 50, n = np) # Windspeed
+height <- runif(min = 3.5 , max = 5.5, n = np) # Vegetation height 
+# Create dataframe 
+X1 <- cbind.data.frame(k_o, k_d, v, height = height)
+
+# ..... X2 Sampling.....
+# Define variables 
+k_o <- rnorm(mean = 0.1, sd = 0.1 * 0.01, n = np)
+k_d <- rnorm(mean = 0.7, sd = 0.7 * 0.01, n = np)
+v <- rnorm(mean = 300, sd = 50, n = np) # Windspeed
+height <- runif(min = 3.5 , max = 5.5, n = np) # Vegetation height 
+# Create dataframe 
+X2 <- cbind.data.frame(k_o, k_d, v, height = height)
+
+# Step 2: Run Sobol model on X1 and X2 dataframes 
+sens_Catm_Sobol <- sobolSalt(model = NULL, X1, X2, nboot = 100)
+
+
+# Take a look at the Sobol generated sensitivity object
+sens_Catm_Sobol$X
+# your parameters sets for sensitivity analysis are in X
+```
+
+## Calculate Sobol Indices
+In this section I:
+1. Run Sobol model for parameter sets (`X1` and `X2`).
+2. 
+  
+```{r}
+# Step 3: Turn Sobol generated sensitivity object into a dataframe
+
+# Prepare parameter matrix for model runs
+parms <- as.data.frame(sens_Catm_Sobol$X)
+colnames(parms) <- colnames(X1)
+
+# Run model and calculate sensitivity indices
+res <- pmap_dbl(parms, Catm)
+sens_Catm_Sobol <- sensitivity::tell(sens_Catm_Sobol, res, res.names = "ga")
+
+# Extract and label main effects (first-order indices)
+row.names(sens_Catm_Sobol$S) <- colnames(parms)
+sens_Catm_Sobol$S
+
+# Extract and label total effects (includes interactions)
+row.names(sens_Catm_Sobol$T) <- colnames(parms)
+sens_Catm_Sobol$T
+
+# Summary of sensitivity analysis
+print(sens_Catm_Sobol)
+
+# Combine parameters with model output
+both <- cbind.data.frame(parms, gs = sens_Catm_Sobol$y)
+```
+**Interpretation of Output**
+
+The output for `sens_Catm_Sobol` contains the first-order indices. These values inform you how much model variance is influenced by that variable. The model output shows that windspeed (`v`) has a sobol value of 0.852 or this variable controls 85% of atmospheric conductance. The second most important variable is `height` which has a sobol value of 
+
+## Visualizing uncertainty
+Plot conductance estimates in a way that accounts for parameter uncertainty
+
+Plot conductance estimates against windspeed use the parameter that is 2nd in terms of total effect on
+response
+
+```{r}
+
+# Distribution of conductance across parameter space
+ggplot(both, aes(x = gs)) +
+  geom_histogram() +
+  geom_vline(xintercept = mean(both$gs), col = "hotpink") +
+  labs(x = "Conductance (mm/s)", 
+       title = "Distribution of Atmospheric Conductance") +
+  theme_minimal()
+
+```
+```{r}
+# Conductance response to windspeed (first most sensitive)
+ggplot(both, aes(v, gs)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(method = "lm") +
+  labs(y = "Conductance (mm/s)",
+       x = "Windspeed (m/s)", 
+       title = "Atmospheric Conductance Response to Windspeed", 
+       subtitle= "Sobol First-Order Indice") +
+  theme_minimal()
+
+```
+
+```{r}
+# Conductance response to height (second most sensitive)
+ggplot(both, aes(height, gs)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(method = "loess", se = TRUE) +
+  labs(x = "Height (m)",
+       y = "Conductance (mm/s)", 
+       title = "Atmsopheric Conductance Response to Vegetation Height", 
+       subtitle = "Sobol Second-Order Indice") +
+  theme_minimal()
+
+```
+
+```{r}
+# Windpseed effect with height 
+ggplot(both, aes(v, gs, col = height)) +
+  geom_point(alpha = 0.5) +
+  scale_color_viridis_c() +
+  labs(x = "Windspeed (m/s)",
+       y = "Conductance (mm/s)",
+       col = "Height (m)", 
+       title = "Atmospheric Conductance Response to Windspeed and Vegetation Height") +
+  theme_minimal()
+```
+**Interpretation of plots**
+
+
+Comment on what this tells you about how atmospheric conductance and its sensitivity to variation in
+windspeed differs in this setting as compared to the setting that we examined in class where windspeed
+was lower and less variable and vegetation was taller
