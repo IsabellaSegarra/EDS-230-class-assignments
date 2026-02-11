@@ -11,6 +11,7 @@ execute:
   error: false
 ---
 ```{r}
+#| message: false 
 # Set-up
 
 library(sensitivity)
@@ -21,12 +22,16 @@ library(here)
 ```
 
 ## Part 1
-write a paragraph describing how results of the sensitivity analysis reported on in the paper might contribute to understanding (or prediction) within an environmental problem solving or management context.
+**Snow Model Sobol Sensitivity Analysis** 
+This paper analyzes the parameter sensitivity of two widely used snow models: the conceptual SNOW-17 model and the physically based snow component of the Variable Infiltration Capacity (VIC) model. Using a combined Sobol’ sensitivity analysis, the study compares how parameters in each model contribute to output variance and affect prediction robustness.
 
-**YOUR PARAGRAPH HERE** 
+The inclusion of different sites was a great way to test how sensitive the models are to varying site characteristics and to evaluate how they perform under different conditions. This showed that the VIC model had different parameter sensitivities across certain climates, suggesting that these models may struggle to be applied consistently across different microclimates and bioregions. By analyzing parameter sensitivity in both a physically based model (VIC) and a conceptual model (SNOW-17), the study highlights how model type influences which parameters matter most.
 
-## Part 2
-Model of atmospheric conductance
+The sensitivity analysis showed that only some parameters strongly influence each model. For SNOW-17, because it is temperature-dependent, temperature and melting parameters mattered most. This helps clarify which parameters are most important when focusing on the conceptual understanding of snowmelt. For the VIC model, snow albedo and other energy-balance-related parameters were especially important, adding more insight into the physically based processes that control snowmelt. At the same time, there is also value in recognizing the parameters that control less of the output, as this helps when thinking about the broader environmental implications and applications of these models.
+
+
+## Part 2: Model of Atmospheric Conductance
+In this part I will use code from `lecture8_sensitivity_sobol.qmd` to model atmospheric conductance. I will source the `Catm` function and perform a sensitivity analysis to determine which parameters are most important using the Sobol method. 
 
 ### Step 1: The Function
 This function was created by Naomi Tague. It is a function that calculates atmospheric conductance or how easily water diffuses into the air. This value largely depends on windspeed. 
@@ -37,26 +42,13 @@ source(here("R/Catm.R"))
 
 ## Step 2: Sobol sensitivty analysis
 The following parameters are considered in our sensitivity analysis:
-- `height`
-- `k_d`
-- `k_o`
-- `v`
+- `height`: assume that height is somewhere between 3.5 and 5.5 m
+- `k_d`: assume normal distirbution with sd of 1% of default (0.1)
+- `k_o`: assume normal distirbution with sd of 1% of default (0.1)
+- `v`: Windspeeds are normally distributed with a mean of 300 cm/s with a standard deviation of 50 cm/s
 
-Windspeeds are normally distributed with a mean of 300 cm/s with a standard deviation of 50 cm/s
-
-For vegetation height assume that height is somewhere between 3.5 and 5.5 m (but any value in that
-range is equally likely) 
-
-For the `k_d` and `k_o` and parameters you can assume that they are normally distributed with standard deviation
-of 1% of their default values
-
-Assume the following:
-- windspeed substantially higher
-- vegetation shorter 
-
-In this section I did the following:
-1. 
 ```{r}
+#| output: false 
 # Set seed for reproducibility
 set.seed(230)
 
@@ -93,11 +85,13 @@ sens_Catm_Sobol$X
 ```
 
 ## Calculate Sobol Indices
-In this section I:
+In this section I will:
 1. Run Sobol model for parameter sets (`X1` and `X2`).
-2. 
+2. Calculate sensitivity indices
+3. Create dataframe with model outputs. 
   
 ```{r}
+#| output: false 
 # Step 3: Turn Sobol generated sensitivity object into a dataframe
 
 # Prepare parameter matrix for model runs
@@ -124,12 +118,12 @@ both <- cbind.data.frame(parms, gs = sens_Catm_Sobol$y)
 ```
 **Interpretation of Output**
 
-The output for `sens_Catm_Sobol` contains the first-order indices. These values inform you how much model variance is influenced by that variable. The model output shows that windspeed (`v`) has a sobol value of 0.852 or this variable controls 85% of atmospheric conductance. The second most important variable is `height` which has a sobol value of 
+The output for `sens_Catm_Sobol` contains the first-order indices. These values inform you how much model variance is influenced by that variable. The model output shows that windspeed (`v`) has a sobol value of 0.852 or this variable controls 85% of atmospheric conductance. The second most important variable is `height` which has a sobol value of 0.16, contributing to 16.5% of the variance in atmospheric conductance. 
 
 ## Visualizing uncertainty
-Plot conductance estimates in a way that accounts for parameter uncertainty
-
-Plot conductance estimates against windspeed use the parameter that is 2nd in terms of total effect on
+In this section I will:
+1. Plot conductance estimates in a way that accounts for parameter uncertainty
+2. Plot conductance estimates against windspeed use the parameter that is 2nd in terms of total effect on
 response
 
 ```{r}
@@ -144,7 +138,7 @@ ggplot(both, aes(x = gs)) +
 
 ```
 ```{r}
-# Conductance response to windspeed (first most sensitive)
+# Conductance response to windspeed (first most sensitive parameter)
 ggplot(both, aes(v, gs)) +
   geom_point(alpha = 0.3) +
   geom_smooth(method = "lm") +
@@ -173,7 +167,7 @@ ggplot(both, aes(height, gs)) +
 # Windpseed effect with height 
 ggplot(both, aes(v, gs, col = height)) +
   geom_point(alpha = 0.5) +
-  scale_color_viridis_c() +
+  scale_color_viridis_c(option = "magma", direction = -1)+
   labs(x = "Windspeed (m/s)",
        y = "Conductance (mm/s)",
        col = "Height (m)", 
@@ -181,8 +175,6 @@ ggplot(both, aes(v, gs, col = height)) +
   theme_minimal()
 ```
 **Interpretation of plots**
+The original parameter values for this model showed that `k_d` was the most sensitivity parameter, followed by `k_o`. This is interesting when compared to the current model which shows that vegetation and height had the strongest influence on atmospheric conductance. In this setting, where windspeed is stronger and vegetation is higher, you see more sensitivity to windspeed and vegetation height. Additionally, you see more of a strong linear relationship between atmospheric conductance and windspeed. In a setting with normal wind and vegetation height, `k_o` and `k_d` influence atmospheric conductance the most. This implication for modeling atmospheric conductance shows that there could be a threshold in which other parameters become less effective such as in our current model. 
 
 
-Comment on what this tells you about how atmospheric conductance and its sensitivity to variation in
-windspeed differs in this setting as compared to the setting that we examined in class where windspeed
-was lower and less variable and vegetation was taller
