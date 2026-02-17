@@ -14,19 +14,23 @@ editor: visual
 ```{r exampleode}
 library(deSolve)
 library(tidyverse)
+library(here)
 
 source(here("R/dexppop_play.R"))
 
 dexppop_play
 
 # create parameter list
+initialrabbits = 2
+years = seq(from = 1, to = 100, by = 2)
 
+newparms = list(r = 0.03, carry_capacity = 300)
 
 # apply solver
-
+results = ode(initialrabbits, years, dexppop_play, newparms)
 
 # add more meaningful names
-
+colnames(results) <- c('year', 'P')
 ```
 
 ## Plot
@@ -34,29 +38,39 @@ dexppop_play
 ```{r, plotodep}
 # plot
 
+ggplot(as.data.frame(results), aes(year, P))+
+  geom_point() +
+  labs(x = "year", y = "Population")
+
 ```
 
 ## Try again with different parameters {.scrollable}
 
 ```{r exampleode2}
 # same initial condtions
-
+initalrabbits <- 2
+years <- seq(from = 1, to = 100, by = 2)
 
 # try again with different parameters
-
+alternativeparms <- list(r = 0.04, carry_capacity = 500)
+results2 <- ode(initalrabbits, years, dexppop_play, alternativeparms)
 
 
 # look at results
-
+head(results2)
+colnames(results2) <- c("year", "P_parm2") # updated parms 
 
 # plot
-
+ggplot(as.data.frame(results2), aes(year, P_parm2)) +
+  geom_point() +
+  labs(y = "Population", x="years")
 
 # compare by combining into a single data frame
-
+both <- inner_join(as.data.frame(results), as.data.frame(results2))
 
 #both_p <- both %>% gather(key = "model", value = "P", -year)
 
+both_p <- both %>% pivot_longer(-year, names_to = "model", values_to = "P")
 
 ```
 
@@ -64,6 +78,9 @@ dexppop_play
 
 ```{r, plotb}
 # plot
+ggplot(both_p, aes(year, P, col = model)) +
+  geom_point() +
+  labs(y = "Population", "years", col = "Model")
 
 ```
 
