@@ -305,6 +305,35 @@ msage = readRDS(here("Data/msage.RDS"))
 
 -   NSE
 
+```{r}
+source(here("R/nse.R"))
+nse
+
+
+# compute nse for each parameter set
+
+# Change the parameter set for months 
+
+# filter for month
+msage_month <- msage %>% 
+  filter(month == "August")
+
+res = msage_month %>%
+  select(-date, -month, -day, -year, -wy, -obs ) %>% 
+  map_dbl(nse, o=msage$obs)
+
+head(res)
+summary(res)
+
+# basic calibration would be picking a single parameters set
+best_par = which.max(res)
+# lets plot the best parameter set
+
+ggplot(msage, aes(as.Date(date), msage[,best_par]))+geom_line(col="red")+
+  geom_line(data=msage, aes(as.Date(date), obs), col="black", linetype=2)+labs(y="Streamflow for ", x="Date")
+```
+
+
 ```{r, echo=TRUE, eval=TRUE}
 
 source(here("R/nse.R"))

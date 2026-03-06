@@ -122,12 +122,14 @@ lotvmod
 
 # note the use of with
 # initial conditions
+currpop <-  c(prey = 10, pred = 1)
 
 # time points to see results
-
+days <- seq(from = 1, to = 100, by = 1)
 # set parameters
-
+pars <- c(rprey = 0.5, alpha = 0.3, eff = 0.12, pmort = 0.2)
 # run the model
+res <- ode(func = lotvmod, y = currpop, times = days, parms = pars)
 
 ```
 
@@ -152,13 +154,52 @@ lotvmod
 # graph the results
 head(res)
 # rearrange for easy plotting
-
+resl <- as.data.frame(res) %>%  pivot_longer(-time, names_to = "animal", values_to = "pop")
 # first plot against time - use color for pred vs prey
+p1 <- ggplot(as.data.frame(res), aes(pred, prey)) + geom_point() +
+  labs(y = "prey", x = "Pred")
 
+p1
 # plot interactions x-y (pred vs prey) - use color for time)
+p2 <- ggplot(resl, aes(time, pop, color = animal)) + geom_line() +
+  labs(y = "pop", x = "time")
 
-
+p2
 # plot side by side with ggarrange
+```
+
+```{r}
+{r}
+# add a carrying capacity (K) 
+
+lotvmod_k <- function(t, pop, pars) {
+  with(as.list(c(pars, pop)), {
+    # population prey 
+    dprey <- rprey * (1-prey/k) - alpha * prey * pred
+    # population predator 
+    dpred <- eff * alpha * prey * pred - pmort * pred
+    return(list(c(dprey, dpred)))
+  })
+}
+
+currpop <- c(prey = 1, pred = 1)
+
+# set parameter list
+pars <- c(rprey = 0.1, alpha = 0.6, eff = 0.8, pmort = 0.4, k = 20)
+
+# times when you want to evaluate
+days <- seq(from = 1, to = 500)
+
+# run our differential equation solver
+resk <- ode(func = lotvmodK, y = currpop, times = days, parms = pars)
+
+# rearrange for plo
+
+p2 <- ggplot(as.data.frame(resk), aes(time, pop, color = animal)) + geom_line() +
+  labs(y = "pop", x = "time")
+
+p2
+
 ```
 
 # Try other parameters {.scrollable}

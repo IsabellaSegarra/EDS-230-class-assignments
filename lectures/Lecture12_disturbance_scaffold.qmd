@@ -13,6 +13,7 @@ library(deSolve)
 library(here)
 library(sensitivity)
 ```
+
 ## Negative sobol first order indices {.scrollable}
 
 if confidence interval includes zero - not a problem
@@ -43,9 +44,7 @@ Suggest that the solver (numerical integration) had issues
     *result = ode(y=Pinitial, times=simtimes, func=func, parms=parms, method="daspk")*
     ```
 
--   "stiff" problems are harder for numerical integration to solve - (small changes have big impacts); a threshold carrying capacity does that \
-
-
+-   "stiff" problems are harder for numerical integration to solve - (small changes have big impacts); a threshold carrying capacity does that\
 
 ## Ways to use dynamic models {.scrollable}
 
@@ -83,8 +82,6 @@ Disturbance is integrated into the model [**endogenous**]{style="color:orange"}
 -   do you have a model of the disturbance
     -   could you integrate this model into your existing dynamic model
 
-
-
 ## Tradeoffs {.scrollable}
 
 Exogenous is easier to implement; and may allow you to use output from another model even if there are feedbacks it might still be useful to see what happens after a disturbance
@@ -96,7 +93,6 @@ Endogenous allows for a more complete integration of the disturbance
 What would a model of forest growth look like if we harvest a forest on a regular basis
 
 Some possible options
-
 
 3.  Disturbance is **exogenous** (outside of the model)
 
@@ -120,8 +116,6 @@ Modeling carbon growth in a forest
 We can actually re-use our model - if we assume forest growth follows a logistic growth curve (e.g exponential growth towards a carrying capacity)
 
 Let's consider harvesting as **exogenous** first - simply change the starting condition
-
-
 
 ## Lets consider forest growth using our simple growth model {.scrollable}
 
@@ -179,6 +173,25 @@ How would you change the differential equation to implement this - try it!
 
 -   try changing the harvesting rate to see what happens
 
+    ```{r}
+    source(here("R/modified_dpopgrowth.R"))
+    my_dharvest
+
+    # set parameters
+    forestparms <- list(K = 100, r = 0.2)
+
+    # create a time sequence
+    tm <- 500
+
+    # start a small forest
+    postfire_initial_carbon <- 2
+
+    # watch it grow
+    forest <- ode(y = postfire_initial_carbon, times = , dpopgrowth, parms = forestparms)
+
+
+    ```
+
 ## My answer {.scrollable}
 
 We can include harvesting in our forest with a new parameter **harv** (proportional harvesting rate))
@@ -191,8 +204,8 @@ source(here("R/dharvest.R"))
 dharvest
 
 # try it out
-tm <- seq(from = 1, to = 500)
-Cinitial <- 30
+tm <- seq(from = 1, to = 500) # 500 years 
+Cinitial <- 30 # initial carbon 
 gps <- list(harv = 0.1, K = 100, r = 0.2)
 res <- ode(Cinitial, tm, dharvest, gps)
 colnames(res) <- c("time", "carbon")
@@ -222,26 +235,37 @@ Compute trajectories of forest biomass (or carbon) over time - given different h
 ```{r harvest2, echo=TRUE}
 # what if we harvest a a much greater rates
 # lets vary the harvest rates from 0.0 to 0.4
-
+source(here("R/dharvest.R"))
 # save all of the trajectories
 # use a wrapper function to just return the carbon trajectories from ODE output
 getcarbon <- function(Cinitial, tm, harv, K, r, hfunc) {
   # create parameter list for ODE
-  
+  gps = list(harv = harv, r = r, K = K) 
   # run ode
- 
+  res = ode(Cinitial, tm, hfunc, gps)
   # clean up output
-
+  res = as.data.frame(res)
+  colnames(res) = c("time", "carbon")
   # return just the carbon trajectory
-
+  return(carbon = res$carbon)
 }
 
 # apply this function to all harvest values
+result1 = getcarbon(Cinitial = 20, tm = seq(from = 1, to = 100), K = 100, r = 0.2, harv = 0.2, hfunc = dharvest)
+
+harvestr = seq(from = 0.0, to = 0.4, by = 0.025)
+tm = seq(from = 1, to = 200)
+
+allres = harvestr %>%  map_dfc(~getcarbon (Cinitial = 20, tm = tm, K = 100, r = 0.2, hfunc = dharvest, harv = .x))
 
 # rows are time, columns are carbon for each harvest scenario
 
 # add names based on harvest
+colnames(allres) = harvestr
+allres = as.data.frame(allres)
+allres$time = tm
 
+allresl = allres %>%  pivot_longer(names_to = "harvestr", values_to = "carbon", -time)
 # add time
 
 ```
@@ -253,7 +277,8 @@ getcarbon <- function(Cinitial, tm, harv, K, r, hfunc) {
 
 ```{r harvest2plot, echo=TRUE}
 # put in to a form where we can plot
-
+ggplot(allresl, aes(time, carbon, col = harvestr)) +
+  geom_line()
 
 # graph
 
@@ -304,7 +329,6 @@ Sensitivity of what? What do we care about?
 
 -   where forest ends up after 10 years and 50 years (short and long planning horizons)
 
-
 ## Workflow for Sensitivity Analysis {.scrollable}
 
 1)  implement (or identify pre-existing) dynamic model
@@ -330,7 +354,7 @@ Sensitivity of what? What do we care about?
 
 ## Code {.scrollable}
 
-Metric functions -  where forest ends up after 10 years and 50 years (short and long planning horizons)
+Metric functions - where forest ends up after 10 years and 50 years (short and long planning horizons)
 
 ```{r harvestsend, echo=TRUE}
 # fixed amount per year

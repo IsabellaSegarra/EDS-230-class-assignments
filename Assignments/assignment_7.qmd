@@ -1,0 +1,39 @@
+---
+title: "EDS-230 Assignment 7: Two variable ODE"
+author: Isabella Segarra 
+format:
+  html:
+    code-fold: show
+execute:
+  echo: true
+  warning: false
+  message: false
+  error: false
+---
+## Build model
+Build this model (e.g add hunting to the lotvmodK.R),
+
+Some requirements/hints for your model
+
+You should make sure that you don't hunt more prey than exist.
+
+To ensure that you might also add a minimum prey population input that must be met before hunting is allowed.
+
+Note you can make this as simple or as complex as you would like. You could represent hunting in a way that is similar to "harvesting" in the last assignment - or you could make hunting an exogenous process - so a time based input to your model
+
+```{r}
+#| label: set-up
+
+# Load packages 
+library(tidyverse)
+library(deSolve)
+library(here)
+library(sensitivity)
+# Set seed for reproducibility
+set.seed(230)
+
+# Source function
+
+
+```
+

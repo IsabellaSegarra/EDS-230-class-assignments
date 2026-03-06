@@ -376,6 +376,46 @@ head(res2)
 
 -   add the quiz the column number of your metric
 
+```{r}
+# Modify NSE - you want to determine the mean streatmflow, not what the original formula is calculating 
+
+nse_modified <- function(m, o, dates) {
+  #err <- m - o
+  meanobs <- mean(o)
+  #mse <- sum(err * err)
+  return(meanobs)
+}
+
+#  comput for a single month 
+nse_monthly <- function(m, o, dates, month) {
+  idx <- as.integer(format(dates, "%m")) == month
+  m <- m[idx]
+  o <- o[idx]
+  
+  err <- m - o
+  meanobs <- mean(o)
+  mse <- sum(err * err)
+  ovar <- sum((o - meanobs) * (o - meanobs))
+  return(1.0 - mse / ovar)
+}
+
+#ovar <- sum((o - meanobs) * (o - meanobs))
+  #nse <- 1.0 - mse / ovar
+
+res = msage %>% 
+  select(-date, -month, -day, -year, -wy, -obs ) %>% 
+  map_dbl(nse_modified, o=msage$obs)
+
+head(res)
+summary(res)
+
+# basic calibration would be picking a single parameters set
+best_par = which.max(res)
+view(best_par)
+
+# 32 
+```
+
 ## Equifinality
 
 -   Many parameter sets yield similar performance
