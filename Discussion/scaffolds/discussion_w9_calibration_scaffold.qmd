@@ -4,12 +4,12 @@ format: revealjs
 execute: 
   echo: TRUE
 theme: solarized
-resources: ["img/"]
+resources: ["../lectures/img/"]
 css: ["slides.css"]
 editor: visual
 ---
 
-## Some insightful comments from quest lectures {.scrollable}
+## Some insightful comments from guest lectures {.scrollable}
 
 *Models and assumptions*
 
@@ -17,7 +17,7 @@ It's okay to make assumptions, assumptions are in every model.
 
 most models are a great way to describe a system that is fairly unexplained, with the caveat that because it is so underresearched the models developed will have many assumptions. Ultimately, they are still good estimations and starting points to describing a system.
 
-model doesn’t need to be perfect to be useful
+model doesn't need to be perfect to be useful
 
 *Why Model*
 
@@ -41,7 +41,7 @@ You could build the perfect model that predicts outcomes without any error, but 
 
 ## next
 
-![](img/modeling_pipeline_two_row.svg){width="100%"}
+![](../lectures/img/modeling_pipeline_two_row.svg){width="100%"}
 
 ## Comparing Model with Observations
 
@@ -95,7 +95,7 @@ Calibration - Pick the "best" parameter set - Or pick only parameter sets that p
 
 ## Example (Picking model based on performance)
 
-![Model Comparison](img/hydrometric.png)
+![Model Comparison](../lectures/img/hydrometric.png)
 
 [Staudinger, M., Stahl, K., Seibert, J., Clark, M. P., and Tallaksen, L. M.: Comparison of hydrological model structures based on recession and low flow simulations, Hydrol. Earth Syst. Sci. Discuss., 8, 6833-6866, doi:10.5194/hessd-8-6833-2011, 2011]{style="font-size:50%"}
 
@@ -152,19 +152,13 @@ nse = function(m, o) {
 
 Many options - here's one example
 
-$perf(x) = \begin{cases}
-  0 & \text{if } x \leq a_1 \\
-   \frac{x - a_1}{a_2 - a_1} & \text{if } a_1 \leq x < a_2 \\
-  1 & \text{if } a_2 \leq x < a_3 \\
-  \frac{a_4 - x}{a_4 - a_3} & \text{if } a_3 \leq x < a_4 \\
-   0 & \text{if } x \geq a_4
-\end{cases}$
+$perf(x) = \begin{cases} 0 & \text{if } x \leq a_1 \\ \frac{x - a_1}{a_2 - a_1} & \text{if } a_1 \leq x < a_2 \\ 1 & \text{if } a_2 \leq x < a_3 \\ \frac{a_4 - x}{a_4 - a_3} & \text{if } a_3 \leq x < a_4 \\ 0 & \text{if } x \geq a_4 \end{cases}$
 
 [Seibert, J., and J. J. McDonnell, On the dialog between experimentalist and modeler in catchment hydrology: Use of soft data for multicriteria model calibration, Water Resour. Res., 38(11), 1241, doi:10.1029/2001WR000978, 2002]{style="font-size:50%"}
 
 ## Fuzzy Metric as a Plot
 
-![Fuzzy Metric](img/fuzzy_metric.png)
+![Fuzzy Metric](../lectures/img/fuzzy_metric.png)
 
 ## Example application {.scrollable}
 
@@ -268,11 +262,11 @@ How important is the metric?
 
 ## Hydrologic model example
 
-![Sagehen](img/Sagehenpic.png)
+![Sagehen](../lectures/img/Sagehenpic.png)
 
 ## RHESSys
 
-![RHESSys](img/RHESSys.png)
+![RHESSys](../lectures/img/RHESSys.png)
 
 ## RHESSys {.scrollable}
 
@@ -315,6 +309,10 @@ p1+geom_line(data=subset(msage, wy == 1970), aes(as.Date(date), obs), linewidth=
 
 
 # try another year
+
+
+#try a month from a year
+
 ```
 
 ## Calibration metrics for each parameter set {.scrollable}
@@ -328,7 +326,13 @@ nse
 
 # compute nse for each parameter set
 
-res = msage %>% select(-date, -month, -day, -year, -wy, -obs ) %>% map_dbl(nse, o=msage$obs)
+res = msage %>% 
+  select(-date, -month, -day, -year, -wy, -obs ) %>% 
+  map_dbl(nse, o=msage$obs)
+
+#alternatively
+
+
 head(res)
 summary(res)
 
@@ -340,6 +344,9 @@ ggplot(msage, aes(as.Date(date), msage[,best_par]))+geom_line(col="red")+
   geom_line(data=msage, aes(as.Date(date), obs), col="black", linetype=2)+labs(y="Streamflow", x="Date")
 
 # what would be acceptable?
+
+
+#try with months
 
 ```
 
@@ -356,7 +363,7 @@ ggplot(msage, aes(as.Date(date), msage[,best_par]))+geom_line(col="red")+
 -   Many parameter sets yield similar performance
 -   Limits confidence in "best" calibration
 
-![Equifinality](img/dottyplots.png)
+![Equifinality](../lectures/img/dottyplots.png)
 
 ## Issue with parameter selection
 
@@ -389,4 +396,4 @@ How can we be more robust in parameter selection?
 
 Mean weighted estimate (MWE) - Weighted average of outputs by performance - Produces MWE (Mean Weighted Estimate)
 
-![Equifinality](img/weights.png)
+![Equifinality](../lectures/img/weights.png)
