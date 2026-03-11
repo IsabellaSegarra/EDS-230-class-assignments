@@ -327,11 +327,12 @@ nse
 # compute nse for each parameter set
 
 res = msage %>% 
-  select(-date, -month, -day, -year, -wy, -obs ) %>% 
+  select(-date, -month, -day, -year, -wy, -obs ) %>% # get rid of list elements that you do not want 
   map_dbl(nse, o=msage$obs)
 
 #alternatively
-
+param_runs = msage %>% select(-date, -month, -day, -year, -wy, -obs)
+res = map_dbl(.x = param_runs, .f = nse, o = msage$obs)
 
 head(res)
 summary(res)
@@ -357,6 +358,10 @@ ggplot(msage, aes(as.Date(date), msage[,best_par]))+geom_line(col="red")+
 -   consider subseting to a specific season (e.g. summer) or specific flow conditions (e.g. low flow) and compute your metric for that subset of the data
 
 -   add the quiz the column number of your metric
+
+```{r}
+
+```
 
 ## Equifinality
 

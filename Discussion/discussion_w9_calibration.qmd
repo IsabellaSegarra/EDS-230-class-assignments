@@ -396,22 +396,23 @@ nse_monthly <- function(m, o, dates, month) {
   meanobs <- mean(o)
   mse <- sum(err * err)
   ovar <- sum((o - meanobs) * (o - meanobs))
-  return(1.0 - mse / ovar)
+  nse <- 1.0 - mse / ovar
+
+  return(nse)
 }
 
-#ovar <- sum((o - meanobs) * (o - meanobs))
-  #nse <- 1.0 - mse / ovar
 
 res = msage %>% 
-  select(-date, -month, -day, -year, -wy, -obs ) %>% 
-  map_dbl(nse_modified, o=msage$obs)
+  select(-date, -month, -day, -year, -wy, -obs) %>% 
+  map_dbl(nse_monthly, o=msage$obs, dates=msage$date, month=7)
+
 
 head(res)
 summary(res)
 
 # basic calibration would be picking a single parameters set
 best_par = which.max(res)
-view(best_par)
+view(best_par) # 40 
 
 # 32 
 ```
