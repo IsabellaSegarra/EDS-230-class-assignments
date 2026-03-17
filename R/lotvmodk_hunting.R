@@ -1,6 +1,6 @@
 #' Lot. Voltera Model
 #'
-#' function computes the rate of change of populations in a predictor prey interaction
+#' function computes the rate of change of populations in a predictor prey interaction with hunting. 
 #' @param t  time (days)
 #' @param pop datatype list initial conditions; list with two values prey=number of prey and pred=number of predictor
 #' @param pars datatype list  coefficient in Lotka-Voltera pars$rprey, pars$alpha, pars$eff, par$pmort
@@ -24,8 +24,21 @@
 
 lotvmodK <- function(t, pop, pars) {
   with(as.list(c(pars, pop)), {
+    # Population prey
     dprey <- rprey * (1 - prey / K) * prey - alpha * prey * pred
+    # Population predator 
     dpred <- eff * alpha * prey * pred - pmort * pred
     return(list(c(dprey, dpred)))
   })
+}
+
+forest_growth <- function(time, C, parms, thresh = 50) {
+  #Below threshold
+  if (C < thresh) {
+    dC <- parms$r * C 
+    # Above threshold 
+  } else if (C >= thresh) {
+    dC <- parms$g * (1 - C / parms$K)
+  }
+  return(list(dC))
 }
